@@ -1,0 +1,6 @@
+1. Notification system for futsal owners such that a Notification comes whenever a booking is made. 
+2. Add a booking detail field. 
+3. Allow the admins to create bookings. Make an add booking admin page
+4. Make the my bookings page. 
+5. Handle all the links. 
+6. Update the database to something other than sqlite. 
