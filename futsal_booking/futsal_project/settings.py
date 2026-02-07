@@ -13,9 +13,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = True
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -26,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    
+
     # Third party apps
     'allauth',
     'allauth.account',
@@ -34,7 +35,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'crispy_forms',
     'crispy_bootstrap5',
-    
+
     # Local apps
     'bookings',
 ]
@@ -161,24 +162,30 @@ SOCIALACCOUNT_PROVIDERS = {
 
 LOGIN_REDIRECT_URL = '/'                # or '/available-slots/' or '/my-bookings/'
 ACCOUNT_LOGOUT_REDIRECT_URL = '/'       # or '/accounts/login/'
+ACCOUNT_LOGOUT_ON_GET = True
 
 # Crispy Forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Email Configuration
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_BACKEND = config(
+    'EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='noreply@futsalbooking.com')
+
+# Very important for Gmail + allauth
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f"{EMAIL_HOST_USER}")
 
 # Security Settings
 if not DEBUG:
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
-    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+    SECURE_SSL_REDIRECT = config(
+        'SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = config(
+        'SESSION_COOKIE_SECURE', default=True, cast=bool)
     CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -200,7 +207,8 @@ CSRF_TRUSTED_ORIGINS = [config('SITE_URL', default='http://localhost:8000')]
 
 # Content Security Policy
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://accounts.google.com")
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'",
+                  "https://cdn.jsdelivr.net", "https://accounts.google.com")
 CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net")
 CSP_IMG_SRC = ("'self'", "data:", "https:")
 CSP_FONT_SRC = ("'self'", "https://cdn.jsdelivr.net")

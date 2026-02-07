@@ -1,0 +1,265 @@
+/* Custom CSS for Futsal Booking System */
+
+:root {
+    --primary-color: #198754;
+    --secondary-color: #6c757d;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+}
+
+/* General Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navbar */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Cards */
+.card {
+    border: none;
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.card-header {
+    font-weight: 600;
+    border-bottom: 2px solid rgba(0,0,0,.125);
+}
+
+.shadow {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 0.375rem;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,.2);
+}
+
+.btn-success {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-success:hover {
+    background-color: #157347;
+    border-color: #157347;
+}
+
+/* Jumbotron replacement */
+.jumbotron {
+    background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+    border-radius: 0.5rem;
+}
+
+/* Tables */
+.table {
+    background-color: white;
+}
+
+.table thead {
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+/* Badges */
+.badge {
+    padding: 0.35em 0.65em;
+    font-weight: 600;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 0.375rem;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    border-left-color: var(--primary-color);
+}
+
+.alert-danger {
+    border-left-color: var(--danger-color);
+}
+
+.alert-warning {
+    border-left-color: var(--warning-color);
+}
+
+.alert-info {
+    border-left-color: var(--info-color);
+}
+
+/* Forms */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* Timeline for booking history */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.6rem;
+    top: 0.5rem;
+    bottom: -1rem;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+}
+
+footer a {
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+footer a:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 2rem 1rem !important;
+    }
+    
+    .jumbotron h1 {
+        font-size: 2rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+}
+
+/* Loading spinner */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15rem;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #157347;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Slot availability cards */
+.card.border-success {
+    border-width: 2px !important;
+}
+
+.card.border-danger {
+    border-width: 2px !important;
+    opacity: 0.7;
+}
+
+/* Utility classes */
+.text-success {
+    color: var(--primary-color) !important;
+}
+
+.bg-success {
+    background-color: var(--primary-color) !important;
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    footer,
+    .btn,
+    .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #dee2e6 !important;
+        page-break-inside: avoid;
+    }
+}
