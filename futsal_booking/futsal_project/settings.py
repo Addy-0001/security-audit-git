@@ -125,6 +125,9 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 
+# Crispy Forms – REQUIRED for {{ form|crispy }} to work
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
+
 # Email configuration – Gmail SMTP
 EMAIL_BACKEND = config(
     'EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
@@ -142,13 +145,11 @@ DEFAULT_FROM_EMAIL = config(
 ESEWA_MERCHANT_CODE = config('ESEWA_MERCHANT_CODE', default='EPAYTEST')
 ESEWA_SECRET_KEY = config('ESEWA_SECRET_KEY', default='8gBm/:&EnhH.1/q')
 
-# Current working testing URLs from eSewa docs (v2 form + status check)
 ESEWA_PAYMENT_URL = config(
     'ESEWA_PAYMENT_URL', default='https://rc.esewa.com.np/api/epay/main/v2/form')
 ESEWA_VERIFICATION_URL = config(
     'ESEWA_VERIFICATION_URL', default='https://rc.esewa.com.np/api/epay/transaction/status/')
 
-# Your local redirect URLs (must be reachable in dev)
 ESEWA_SUCCESS_URL = config(
     'ESEWA_SUCCESS_URL', default='http://127.0.0.1:8000/payment/success/')
 ESEWA_FAILURE_URL = config(

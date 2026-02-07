@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load socialaccount %} <!-- ← THIS LINE WAS MISSING – ADD IT HERE -->
+
+{% block head_title %}
+  {% trans 'Sign Up' %}| Futsal Arena
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0 mt-5">
+          <div class="card-header bg-success text-white text-center py-4">
+            <h3 class="mb-0">
+              <i class="bi bi-person-plus-fill me-2"></i>
+              Create Your Account
+            </h3>
+          </div>
+
+          <div class="card-body p-4 p-md-5">
+            <p class="text-center text-muted mb-4">Join Futsal Arena and start booking courts today!</p>
+
+            <!-- Google Signup -->
+            <div class="d-grid mb-4">
+              <a href="{% provider_login_url 'google' method='signup' %}" class="btn btn-outline-danger btn-lg">
+                <i class="bi bi-google me-2"></i>
+                Sign up with Google
+              </a>
+            </div>
+
+            <div class="text-center text-muted mb-4">────────── or sign up with email ──────────</div>
+
+            <!-- Email Signup Form -->
+            <form method="post" action="{% url 'account_signup' %}">
+              {% csrf_token %}
+
+              {{ form|crispy }}
+
+              <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-success btn-lg">
+                  <i class="bi bi-person-plus me-2"></i>
+                  Sign Up
+                </button>
+              </div>
+
+              <div class="text-center mt-4">
+                <small class="text-muted">
+                  Already have an account?
+                  <a href="{% url 'account_login' %}" class="text-success fw-bold">Log in here</a>
+                </small>
+              </div>
+
+              <div class="text-center mt-3">
+                <small class="text-muted">
+                  By signing up, you agree to our
+                  <a href="#">Terms of Service</a> and
+                  <a href="#">Privacy Policy</a>
+                </small>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Benefits / trust signals -->
+        <div class="card shadow-sm mt-4 border-0">
+          <div class="card-body text-center">
+            <h6 class="mb-3">Why join Futsal Arena?</h6>
+            <ul class="list-unstyled small text-muted">
+              <li class="mb-2">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Easy online court booking
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Real-time availability
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Secure payments with eSewa
+              </li>
+              <li>
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Quick Google or email signup
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
