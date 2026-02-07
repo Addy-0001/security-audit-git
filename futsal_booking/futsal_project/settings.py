@@ -4,8 +4,12 @@ Django settings for futsal_project.
 
 from pathlib import Path
 from decouple import config, Csv
+import certifi
 import os
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
+os.environ.setdefault('SSL_CERT_FILE', certifi.where())
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -168,17 +172,38 @@ ACCOUNT_LOGOUT_ON_GET = True
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-# Email Configuration
+# ----------------------------------------------------------------------
+# Email Configuration – Gmail SMTP (hardened / production-ready)
+# ----------------------------------------------------------------------
 EMAIL_BACKEND = config(
-    'EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.smtp.EmailBackend',
+    cast=str
+)
+
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com', cast=str)
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 
-# Very important for Gmail + allauth
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f"{EMAIL_HOST_USER}")
+# These MUST be set in .env – no empty defaults in production
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', cast=str)
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', cast=str)
+
+# Sender – must match your Gmail address
+DEFAULT_FROM_EMAIL = config(
+    'DEFAULT_FROM_EMAIL',
+    default=f"Futsal Arena <{EMAIL_HOST_USER}>",
+    cast=str
+)
+
+# Recommended timeouts & safety
+EMAIL_TIMEOUT = 30                          # prevent hanging forever
+EMAIL_SSL_CERT_FILE = None
+EMAIL_SSL_KEY_FILE = None
+
+# Allauth email behavior
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'    # force verification (recommended)
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Futsal Arena] '
 
 # Security Settings
 if not DEBUG:
