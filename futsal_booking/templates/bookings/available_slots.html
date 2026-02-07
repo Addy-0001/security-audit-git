@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Available Slots - Futsal Booking System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4"><i class="bi bi-clock-history"></i> Available Time Slots</h2>
+    
+    <!-- Date Selector -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label for="dateSelect" class="form-label">Select Date:</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="dateSelect" 
+                           name="date" 
+                           value="{{ selected_date|date:'Y-m-d' }}"
+                           min="{{ min_date|date:'Y-m-d' }}"
+                           max="{{ max_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-search"></i> Check Availability
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Selected Date Display -->
+    <div class="alert alert-info">
+        <i class="bi bi-calendar-check"></i> Showing slots for: <strong>{{ selected_date|date:"l, F d, Y" }}</strong>
+    </div>
+    
+    <!-- Slots Grid -->
+    {% if slots %}
+    <div class="row">
+        {% for item in slots %}
+        <div class="col-md-4 col-lg-3 mb-3">
+            <div class="card h-100 {% if item.is_available %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="bi bi-clock"></i><br>
+                        {{ item.slot.start_time|date:"g:i A" }}
+                    </h5>
+                    <p class="text-muted">to</p>
+                    <h5 class="card-title">
+                        {{ item.slot.end_time|date:"g:i A" }}
+                    </h5>
+                    <hr>
+                    <p class="card-text">
+                        <small>Duration: {{ item.slot.duration_minutes }} minutes</small>
+                    </p>
+                    {% if item.is_available %}
+                        <span class="badge bg-success mb-2">Available</span>
+                        <div class="d-grid">
+                            <a href="{% url 'create_booking' %}?slot={{ item.slot.id }}&date={{ selected_date|date:'Y-m-d' }}" 
+                               class="btn btn-success btn-sm">
+                                <i class="bi bi-calendar-plus"></i> Book This Slot
+                            </a>
+                        </div>
+                    {% else %}
+                        <span class="badge bg-danger mb-2">Booked</span>
+                        <button class="btn btn-secondary btn-sm" disabled>
+                            <i class="bi bi-x-circle"></i> Not Available
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> No time slots available. Please contact the administrator.
+    </div>
+    {% endif %}
+    
+    <!-- Legend -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6>Legend:</h6>
+            <span class="badge bg-success me-2">Available</span> - You can book this slot
+            <span class="badge bg-danger ms-2">Booked</span> - This slot is already taken
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('dateSelect').addEventListener('change', function() {
+    this.form.submit();
+});
+</script>
+{% endblock %}

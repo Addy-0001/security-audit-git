@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Contact Us - Futsal Booking System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Contact Us</h1>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>Get in Touch</h3>
+                    <p class="lead">
+                        Have questions or need assistance? We're here to help! Feel free to reach out to us through 
+                        any of the following methods.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-envelope-fill text-success" style="font-size: 3rem;"></i>
+                            <h4 class="mt-3">Email Us</h4>
+                            <p>{{ settings.contact_email }}</p>
+                            <a href="mailto:{{ settings.contact_email }}" class="btn btn-outline-success">
+                                <i class="bi bi-envelope"></i> Send Email
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-telephone-fill text-success" style="font-size: 3rem;"></i>
+                            <h4 class="mt-3">Call Us</h4>
+                            <p>{{ settings.contact_phone }}</p>
+                            <a href="tel:{{ settings.contact_phone }}" class="btn btn-outline-success">
+                                <i class="bi bi-telephone"></i> Call Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4><i class="bi bi-geo-alt-fill text-success"></i> Visit Us</h4>
+                    <p><strong>Address:</strong></p>
+                    <p>{{ settings.address|default:"Please contact us for our location" }}</p>
+                    <p><strong>Operating Hours:</strong></p>
+                    <p>{{ settings.opening_time|date:"g:i A" }} - {{ settings.closing_time|date:"g:i A" }} (Daily)</p>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4><i class="bi bi-question-circle text-success"></i> Frequently Asked Questions</h4>
+                    
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    How do I book a slot?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Simply sign in with your Google account, choose your preferred date and time, 
+                                    and confirm your booking. You'll receive a confirmation immediately.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    Can I cancel my booking?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes, you can cancel your booking up to 24 hours before your scheduled time. 
+                                    Late cancellations may not be eligible for refunds.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    What are the payment options?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Payment can be made at the venue or through our online payment system. 
+                                    We accept cash, cards, and digital wallets.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    How far in advance can I book?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    You can book up to {{ settings.advance_booking_days }} days in advance.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h4>Still have questions?</h4>
+                    <p>Don't hesitate to reach out to us. We're always happy to help!</p>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'my_bookings' %}" class="btn btn-success">
+                        <i class="bi bi-calendar-check"></i> View My Bookings
+                    </a>
+                    {% else %}
+                    <a href="{% url 'account_login' %}" class="btn btn-success">
+                        <i class="bi bi-box-arrow-in-right"></i> Sign In to Book
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

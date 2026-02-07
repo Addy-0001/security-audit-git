@@ -1,0 +1,12 @@
+Django
+django-allauth
+python-decouple
+Pillow
+django-crispy-forms
+crispy-bootstrap5
+django-ratelimit
+django-csp
+gunicorn
+whitenoise
+celery
+redis

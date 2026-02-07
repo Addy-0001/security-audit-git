@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}My Bookings - Futsal Booking System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4"><i class="bi bi-calendar-check"></i> My Bookings</h2>
+    
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Filter Bookings</h5>
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="col-md-3">
+                    {{ filter_form.end_date }}
+                </div>
+                <div class="col-md-3">
+                    {{ filter_form.status }}
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success me-2">
+                        <i class="bi bi-filter"></i> Filter
+                    </button>
+                    <a href="{% url 'my_bookings' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Upcoming Bookings -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-calendar-event"></i> Upcoming Bookings</h4>
+        </div>
+        <div class="card-body">
+            {% if upcoming_bookings %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in upcoming_bookings %}
+                        <tr>
+                            <td>
+                                <i class="bi bi-calendar3"></i> 
+                                {{ booking.booking_date|date:"M d, Y" }}
+                            </td>
+                            <td>
+                                <i class="bi bi-clock"></i> 
+                                {{ booking.time_slot }}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if booking.status == 'confirmed' %}success{% elif booking.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                    {{ booking.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if booking.payment_status == 'paid' %}success{% elif booking.payment_status == 'pending' %}warning{% else %}danger{% endif %}">
+                                    {{ booking.get_payment_status_display }}
+                                </span>
+                            </td>
+                            <td>NPR {{ booking.price }}</td>
+                            <td>
+                                <a href="{% url 'booking_detail' booking.id %}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                {% if booking.can_cancel %}
+                                <a href="{% url 'cancel_booking' booking.id %}" 
+                                   class="btn btn-sm btn-danger">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination for Upcoming -->
+            {% if upcoming_bookings.has_other_pages %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if upcoming_bookings.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?upcoming_page={{ upcoming_bookings.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">Page {{ upcoming_bookings.number }} of {{ upcoming_bookings.paginator.num_pages }}</span>
+                    </li>
+                    
+                    {% if upcoming_bookings.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?upcoming_page={{ upcoming_bookings.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> You have no upcoming bookings.
+                <a href="{% url 'create_booking' %}" class="alert-link">Create one now!</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Past Bookings -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0"><i class="bi bi-clock-history"></i> Past Bookings</h4>
+        </div>
+        <div class="card-body">
+            {% if past_bookings %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in past_bookings %}
+                        <tr class="text-muted">
+                            <td>{{ booking.booking_date|date:"M d, Y" }}</td>
+                            <td>{{ booking.time_slot }}</td>
+                            <td>
+                                <span class="badge bg-{% if booking.status == 'completed' %}success{% elif booking.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                    {{ booking.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if booking.payment_status == 'paid' %}success{% else %}secondary{% endif %}">
+                                    {{ booking.get_payment_status_display }}
+                                </span>
+                            </td>
+                            <td>NPR {{ booking.price }}</td>
+                            <td>
+                                <a href="{% url 'booking_detail' booking.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination for Past -->
+            {% if past_bookings.has_other_pages %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if past_bookings.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?past_page={{ past_bookings.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">Page {{ past_bookings.number }} of {{ past_bookings.paginator.num_pages }}</span>
+                    </li>
+                    
+                    {% if past_bookings.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?past_page={{ past_bookings.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No past bookings found.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

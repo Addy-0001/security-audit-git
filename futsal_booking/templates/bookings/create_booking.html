@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Booking - Futsal Booking System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="bi bi-calendar-plus"></i> Create New Booking</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="bookingForm">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <div class="alert alert-info" id="priceInfo" style="display: none;">
+                            <strong>Estimated Price:</strong> NPR <span id="estimatedPrice">0</span>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Confirm Booking
+                            </button>
+                            <a href="{% url 'available_slots' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Available Slots
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Booking Information -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Booking Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success"></i> You can book up to {{ settings.advance_booking_days }} days in advance</li>
+                        <li><i class="bi bi-check-circle text-success"></i> Cancellation allowed up to 24 hours before booking</li>
+                        <li><i class="bi bi-check-circle text-success"></i> Maximum {{ settings.max_bookings_per_user_per_day }} bookings per day</li>
+                        <li><i class="bi bi-check-circle text-success"></i> Price: NPR {{ settings.default_price_per_hour }} per hour</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('bookingForm');
+    const timeSlotSelect = document.getElementById('id_time_slot');
+    const dateInput = document.getElementById('id_booking_date');
+    const priceInfo = document.getElementById('priceInfo');
+    const estimatedPrice = document.getElementById('estimatedPrice');
+    
+    const pricePerHour = {{ settings.default_price_per_hour }};
+    
+    function updatePrice() {
+        const selectedSlot = timeSlotSelect.options[timeSlotSelect.selectedIndex];
+        if (selectedSlot && selectedSlot.value) {
+            // Get duration from slot text (assuming format "HH:MM AM/PM - HH:MM AM/PM")
+            const slotText = selectedSlot.text;
+            // You might need to calculate duration based on your slot structure
+            // For simplicity, using 1 hour as default
+            const price = pricePerHour * 1;
+            estimatedPrice.textContent = price.toFixed(2);
+            priceInfo.style.display = 'block';
+        } else {
+            priceInfo.style.display = 'none';
+        }
+    }
+    
+    async function checkAvailability() {
+        const slotId = timeSlotSelect.value;
+        const date = dateInput.value;
+        
+        if (slotId && date) {
+            try {
+                const response = await fetch(`/api/check-availability/?slot_id=${slotId}&date=${date}`);
+                const data = await response.json();
+                
+                if (!data.available) {
+                    alert('This slot is not available for the selected date. Please choose another slot.');
+                    timeSlotSelect.value = '';
+                }
+            } catch (error) {
+                console.error('Error checking availability:', error);
+            }
+        }
+    }
+    
+    timeSlotSelect.addEventListener('change', function() {
+        updatePrice();
+        checkAvailability();
+    });
+    
+    dateInput.addEventListener('change', checkAvailability);
+    
+    form.addEventListener('submit', function(e) {
+        if (!timeSlotSelect.value || !dateInput.value) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

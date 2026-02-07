@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Home - Futsal Booking System
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+      <div class="col-lg-12">
+        <div class="jumbotron bg-success text-white p-5 rounded-3 shadow">
+          <h1 class="display-4 fw-bold">Welcome to {{ settings.futsal_name }}</h1>
+          <p class="lead">Book your futsal court online - Quick, Easy, and Secure!</p>
+          <hr class="my-4 bg-white opacity-75" />
+
+          {% if user.is_authenticated %}
+            <p class="fs-5">Ready to play? Book your slot now!</p>
+            <div class="d-flex gap-3 flex-wrap">
+              <a class="btn btn-light btn-lg" href="{% url 'create_booking' %}" role="button"><i class="bi bi-calendar-check me-2"></i>Book Now</a>
+              <a class="btn btn-outline-light btn-lg" href="{% url 'available_slots' %}" role="button"><i class="bi bi-clock me-2"></i>View Available Slots</a>
+            </div>
+          {% else %}
+            <p class="fs-5">Sign in with Google to start booking!</p>
+            <a class="btn btn-light btn-lg" href="{% url 'account_login' %}" role="button"><i class="bi bi-google me-2"></i>Sign In with Google</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if user.is_authenticated %}
+      <!-- Upcoming Bookings -->
+      <div class="row mb-5">
+        <div class="col-lg-12">
+          <h2 class="mb-4"><i class="bi bi-calendar-event-fill text-success me-2"></i>Your Upcoming Bookings</h2>
+
+          {% if upcoming_bookings %}
+            <div class="row g-4">
+              {% for booking in upcoming_bookings %}
+                <div class="col-md-6 col-lg-4">
+                  <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                      <h5 class="card-title">
+                        <i class="bi bi-calendar3 text-success me-2"></i>
+                        {{ booking.booking_date|date:'D, M d, Y' }}
+                      </h5>
+                      <p class="card-text mb-3">
+                        <i class="bi bi-clock text-muted me-1"></i> {{ booking.time_slot }}<br />
+                        <span class="badge fs-6 mt-2 bg-{% if booking.status == 'confirmed' %}
+                            success
+                          {% elif booking.status == 'pending' %}
+                            warning
+                          {% elif booking.status == 'cancelled' %}
+                            danger
+                          {% else %}
+                            secondary
+                          {% endif %}">
+                          {{ booking.get_status_display }}
+                        </span>
+                      </p>
+                      <a href="{% url 'booking_detail' booking.id %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye me-1"></i>View Details</a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info shadow-sm">
+              <i class="bi bi-info-circle-fill me-2"></i>
+              You don't have any upcoming bookings yet.
+              <a href="{% url 'available_slots' %}" class="alert-link">Check available slots now!</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- How It Works Section -->
+    <div class="row mb-5">
+      <div class="col-lg-12">
+        <h2 class="text-center mb-5"><i class="bi bi-lightbulb-fill text-success me-2"></i>How It Works</h2>
+        <div class="row g-4 text-center">
+          <div class="col-md-3">
+            <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+              <span class="h3 mb-0">1</span>
+            </div>
+            <h5>Sign In</h5>
+            <p class="text-muted">Login with your Google account</p>
+          </div>
+          <div class="col-md-3">
+            <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+              <span class="h3 mb-0">2</span>
+            </div>
+            <h5>Choose Slot</h5>
+            <p class="text-muted">Select your preferred date and time</p>
+          </div>
+          <div class="col-md-3">
+            <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+              <span class="h3 mb-0">3</span>
+            </div>
+            <h5>Confirm</h5>
+            <p class="text-muted">Review and confirm your booking</p>
+          </div>
+          <div class="col-md-3">
+            <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+              <span class="h3 mb-0">4</span>
+            </div>
+            <h5>Play!</h5>
+            <p class="text-muted">Show up and enjoy your game</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

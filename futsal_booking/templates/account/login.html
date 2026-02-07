@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load socialaccount %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+  Sign In - Futsal Booking System
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow mt-5">
+          <div class="card-header bg-success text-white text-center">
+            <h3 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> Sign In</h3>
+          </div>
+          <div class="card-body p-4 p-md-5">
+            <h5 class="text-center mb-4">Welcome back to Futsal Booking</h5>
+
+            <!-- Google login button -->
+            <div class="d-grid mb-4">
+              <a href="{% provider_login_url 'google' %}" class="btn btn-outline-danger btn-lg"><i class="bi bi-google me-2"></i> Continue with Google</a>
+            </div>
+
+            <div class="text-center text-muted mb-4">────────── or ──────────</div>
+
+            <!-- Email + Password login form -->
+            <form method="post" action="{% url 'account_login' %}">
+              {% csrf_token %}
+
+              {{ form|crispy }}
+
+              <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-success btn-lg"><i class="bi bi-box-arrow-in-right me-2"></i> Sign In with Email</button>
+              </div>
+
+              <div class="text-center mt-3">
+                <small><a href="{% url 'account_reset_password' %}">Forgot your password?</a></small>
+              </div>
+            </form>
+
+            <hr class="my-4" />
+
+            <div class="text-center">
+              <small class="text-muted">
+                Don't have an account?
+                <a href="{% url 'account_signup' %}" class="text-success">Sign up here</a>
+              </small>
+            </div>
+
+            <div class="text-center mt-3">
+              <small class="text-muted">
+                By signing in, you agree to our
+                <a href="#">Terms of Service</a> and
+                <a href="#">Privacy Policy</a>
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Why Google / Email -->
+        <div class="card shadow mt-3">
+          <div class="card-body">
+            <h6 class="mb-3">Why sign in?</h6>
+            <ul class="small mb-0 text-muted">
+              <li>Quick and secure access with Google or email</li>
+              <li>Manage your bookings anytime</li>
+              <li>Receive booking confirmations & reminders</li>
+              <li>Simple password recovery if needed</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
