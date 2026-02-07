@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Redirecting to eSewa...
+{% endblock %}
+
+{% block content %}
+  <div class="container text-center py-5">
+    <h3 class="mb-4">Redirecting to eSewa Payment Gateway</h3>
+    <p class="lead">Please wait... Do not close or refresh this page.</p>
+
+    <div class="spinner-border text-success" role="status" style="width: 4rem; height: 4rem;">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+
+    <form name="esewaForm" action="{{ payment_url }}" method="POST" id="esewaForm">
+      {% for key, value in params.items %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}" />
+      {% endfor %}
+    </form>
+
+    <script>
+      setTimeout(() => {
+        document.getElementById('esewaForm').submit()
+      }, 1500)
+    </script>
+  </div>
+{% endblock %}

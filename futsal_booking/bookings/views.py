@@ -5,14 +5,19 @@ from django.utils import timezone
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator
 from django_ratelimit.decorators import ratelimit
 from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
+import uuid
 
-from .models import Booking, TimeSlot, FutsalSettings, BookingHistory
+from django.conf import settings
+
+from .models import Booking, TimeSlot, FutsalSettings, BookingHistory, Payment
 from .forms import BookingForm, CancellationForm, DateRangeFilterForm
+from .esewa import esewa_gateway
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +34,13 @@ def get_client_ip(request):
 
 def home(request):
     """Home page view"""
-    settings = FutsalSettings.load()
+    settings_obj = FutsalSettings.load()
     recent_bookings_count = Booking.objects.filter(
         status__in=['pending', 'confirmed']
     ).count()
 
     context = {
-        'settings': settings,
+        'settings': settings_obj,
         'recent_bookings_count': recent_bookings_count,
     }
 
@@ -53,18 +58,16 @@ def home(request):
 @ratelimit(key='user', rate='10/h', method='GET')
 def available_slots(request):
     """View to show available time slots for a selected date"""
-    settings = FutsalSettings.load()
-    selected_date = request.GET.get('date', timezone.now().date())
+    settings_obj = FutsalSettings.load()
+    selected_date_str = request.GET.get('date')
 
     try:
-        selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+        selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
     except (ValueError, TypeError):
         selected_date = timezone.now().date()
 
-    # Get all active time slots
     time_slots = TimeSlot.objects.filter(is_active=True).order_by('start_time')
 
-    # Check availability for each slot on the selected date
     slots_with_availability = []
     for slot in time_slots:
         is_booked = Booking.objects.filter(
@@ -78,11 +81,11 @@ def available_slots(request):
         })
 
     context = {
-        'settings': settings,
+        'settings': settings_obj,
         'slots': slots_with_availability,
         'selected_date': selected_date,
         'min_date': timezone.now().date(),
-        'max_date': timezone.now().date() + timedelta(days=settings.advance_booking_days),
+        'max_date': timezone.now().date() + timedelta(days=settings_obj.advance_booking_days),
     }
     return render(request, 'bookings/available_slots.html', context)
 
@@ -90,7 +93,7 @@ def available_slots(request):
 @login_required
 def create_booking(request):
     """Create a new booking"""
-    settings = FutsalSettings.load()
+    settings_obj = FutsalSettings.load()
 
     if request.method == 'POST':
         form = BookingForm(request.POST, user=request.user)
@@ -101,9 +104,16 @@ def create_booking(request):
             # Calculate price correctly using Decimal
             duration_minutes = Decimal(booking.time_slot.duration_minutes)
             duration_hours = duration_minutes / Decimal('60')
-            booking.price = settings.default_price_per_hour * duration_hours
-            booking.price = booking.price.quantize(
-                Decimal('0.01'))  # Round to 2 decimal places
+            booking.price = settings_obj.default_price_per_hour * duration_hours
+            booking.price = booking.price.quantize(Decimal('0.01'))
+
+            # Prevent past dates (extra safety)
+            if booking.booking_date < timezone.now().date():
+                form.add_error('booking_date', "Cannot book for past dates.")
+                return render(request, 'bookings/create_booking.html', {
+                    'form': form,
+                    'settings': settings_obj,
+                })
 
             booking.save()
 
@@ -124,6 +134,7 @@ def create_booking(request):
             messages.success(
                 request, 'Your booking has been created successfully!')
             return redirect('booking_detail', booking_id=booking.id)
+
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
@@ -150,11 +161,10 @@ def create_booking(request):
 
         form.initial.update(initial)
 
-    context = {
+    return render(request, 'bookings/create_booking.html', {
         'form': form,
-        'settings': settings,
-    }
-    return render(request, 'bookings/create_booking.html', context)
+        'settings': settings_obj,
+    })
 
 
 @login_required
@@ -178,7 +188,7 @@ def cancel_booking(request, booking_id):
     if request.method == 'POST':
         form = CancellationForm(request.POST)
         if form.is_valid():
-            if booking.can_be_cancelled():
+            if booking.status in ['pending', 'confirmed']:
                 old_status = booking.status
                 booking.status = 'cancelled'
                 booking.save()
@@ -196,7 +206,7 @@ def cancel_booking(request, booking_id):
                 return redirect('my_bookings')
             else:
                 messages.error(
-                    request, 'This booking cannot be cancelled (too late or already cancelled).')
+                    request, 'This booking cannot be cancelled at this time.')
         else:
             messages.error(request, 'Please confirm cancellation.')
     else:
@@ -229,7 +239,6 @@ def my_bookings(request):
         if status:
             bookings = bookings.filter(status=status)
 
-    # Split into upcoming and past
     today = timezone.now().date()
     upcoming = bookings.filter(booking_date__gte=today)
     past = bookings.filter(booking_date__lt=today)
@@ -266,15 +275,130 @@ def check_slot_availability(request):
         return JsonResponse({'available': False, 'error': 'Invalid parameters'})
 
 
+@login_required
+@login_required
+def initiate_payment(request, booking_id):
+    """Start (or resume) eSewa payment for a specific booking – idempotent"""
+    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+
+    # State checks
+    if booking.status != 'pending':
+        messages.error(request, "This booking is not in a payable state.")
+        return redirect('booking_detail', booking_id=booking.id)
+
+    if booking.payment_status == 'paid':
+        messages.info(request, "This booking has already been paid.")
+        return redirect('booking_detail', booking_id=booking.id)
+
+    # Check for existing payment record (idempotent)
+    payment = Payment.objects.filter(booking=booking).first()
+
+    if payment:
+        # Already exists – reuse it (e.g. user retried / refreshed)
+        if payment.status in ['completed', 'paid']:
+            messages.info(
+                request, "Payment already processed for this booking.")
+            return redirect('booking_detail', booking_id=booking.id)
+
+        if payment.status in ['failed', 'cancelled']:
+            # Allow retry – update status back to initiated
+            payment.status = 'initiated'
+            payment.save(update_fields=['status'])
+            logger.info(f"Retrying payment for existing record: {payment.id}")
+        else:
+            logger.info(f"Resuming existing initiated payment: {payment.id}")
+    else:
+        # No payment yet – create new one
+        transaction_uuid = str(uuid.uuid4())
+        payment = Payment.objects.create(
+            booking=booking,
+            amount=booking.price,
+            status='initiated',
+            transaction_uuid=transaction_uuid,
+            product_code='FUTSAL_BOOKING',
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        logger.info(f"Created new payment record: {payment.id}")
+
+    # Prepare eSewa form parameters
+    params = esewa_gateway.get_payment_form_data(
+        amount=booking.price,
+        booking_id=str(booking.id)
+    )
+
+    context = {
+        'payment_url': settings.ESEWA_PAYMENT_URL,
+        'params': params,
+        'booking': booking,
+        'payment': payment,
+    }
+
+    return render(request, 'bookings/esewa_redirect.html', context)
+
+
+@csrf_exempt
+def payment_success(request):
+    """eSewa success callback – verify & confirm"""
+    ref_id = request.GET.get('refId')
+    amount = request.GET.get('amt')
+    order_id = request.GET.get('oid')  # = booking.id
+
+    if not all([ref_id, amount, order_id]):
+        messages.error(request, "Invalid payment response from eSewa.")
+        return redirect('my_bookings')
+
+    try:
+        booking = get_object_or_404(Booking, id=order_id)
+        payment = get_object_or_404(
+            Payment, booking=booking, transaction_uuid__startswith=order_id[:8])
+    except:
+        messages.error(request, "Booking or payment record not found.")
+        return redirect('my_bookings')
+
+    # Verify with eSewa server
+    if esewa_gateway.verify_payment(ref_id, amount, order_id):
+        payment.mark_completed(esewa_code=ref_id)
+
+        BookingHistory.objects.create(
+            booking=booking,
+            action='payment_completed',
+            changed_by=request.user if request.user.is_authenticated else None,
+            changes={'amount': amount, 'ref_id': ref_id},
+            ip_address=get_client_ip(request)
+        )
+
+        messages.success(
+            request, f"Payment of NPR {amount} successful! Booking confirmed.")
+    else:
+        payment.mark_failed()
+        messages.error(
+            request, "Payment could not be verified. Please contact support if amount was deducted.")
+
+    return redirect('booking_detail', booking_id=booking.id)
+
+
+@csrf_exempt
+def payment_failed(request):
+    messages.error(request, "Payment failed or was declined by eSewa.")
+    return redirect('my_bookings')
+
+
+@csrf_exempt
+def payment_cancelled(request):
+    messages.warning(request, "You cancelled the payment.")
+    return redirect('my_bookings')
+
+
 def about(request):
     """About page"""
-    settings = FutsalSettings.load()
-    context = {'settings': settings}
+    settings_obj = FutsalSettings.load()
+    context = {'settings': settings_obj}
     return render(request, 'bookings/about.html', context)
 
 
 def contact(request):
     """Contact page"""
-    settings = FutsalSettings.load()
-    context = {'settings': settings}
+    settings_obj = FutsalSettings.load()
+    context = {'settings': settings_obj}
     return render(request, 'bookings/contact.html', context)

@@ -13,7 +13,7 @@ class TimeSlot(models.Model):
         (90, '1.5 Hours'),
         (120, '2 Hours'),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -25,15 +25,15 @@ class TimeSlot(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['start_time']
         verbose_name = 'Time Slot'
         verbose_name_plural = 'Time Slots'
-    
+
     def __str__(self):
         return f"{self.start_time.strftime('%I:%M %p')} - {self.end_time.strftime('%I:%M %p')}"
-    
+
     def clean(self):
         from django.core.exceptions import ValidationError
         if self.start_time >= self.end_time:
@@ -48,13 +48,13 @@ class Booking(models.Model):
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
     ]
-    
+
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('paid', 'Paid'),
         ('refunded', 'Refunded'),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         User,
@@ -84,14 +84,14 @@ class Booking(models.Model):
     )
     contact_number = models.CharField(max_length=15)
     notes = models.TextField(blank=True, null=True)
-    
+
     # Security and tracking fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by_ip = models.GenericIPAddressField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancellation_reason = models.TextField(blank=True, null=True)
-    
+
     class Meta:
         ordering = ['-booking_date', 'time_slot__start_time']
         verbose_name = 'Booking'
@@ -102,31 +102,32 @@ class Booking(models.Model):
             models.Index(fields=['user', 'status']),
             models.Index(fields=['status', 'booking_date']),
         ]
-    
+
     def __str__(self):
         return f"{self.user.email} - {self.booking_date} {self.time_slot}"
-    
+
     def clean(self):
         from django.core.exceptions import ValidationError
-        
+
         # Cannot book past dates
         if self.booking_date < timezone.now().date():
             raise ValidationError('Cannot book for past dates')
-        
+
         # Check if slot is already booked (excluding current instance in updates)
         existing_booking = Booking.objects.filter(
             time_slot=self.time_slot,
             booking_date=self.booking_date,
             status__in=['pending', 'confirmed']
         ).exclude(pk=self.pk)
-        
+
         if existing_booking.exists():
-            raise ValidationError('This time slot is already booked for the selected date')
-    
+            raise ValidationError(
+                'This time slot is already booked for the selected date')
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
-    
+
     def can_cancel(self):
         """Check if booking can be cancelled (at least 24 hours before)"""
         booking_datetime = datetime.combine(
@@ -136,7 +137,7 @@ class Booking(models.Model):
         now = timezone.now()
         time_until_booking = booking_datetime - now.replace(tzinfo=None)
         return time_until_booking > timedelta(hours=24) and self.status in ['pending', 'confirmed']
-    
+
     def cancel(self, reason=''):
         """Cancel the booking"""
         if self.can_cancel():
@@ -170,32 +171,32 @@ class FutsalSettings(models.Model):
     contact_email = models.EmailField(default='info@futsal.com')
     contact_phone = models.CharField(max_length=15, default='')
     address = models.TextField(default='')
-    
+
     # Business hours
     opening_time = models.TimeField(default='06:00')
     closing_time = models.TimeField(default='22:00')
-    
+
     # Security settings
     max_bookings_per_user_per_day = models.IntegerField(
         default=2,
         validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = 'Futsal Settings'
         verbose_name_plural = 'Futsal Settings'
-    
+
     def __str__(self):
         return self.futsal_name
-    
+
     def save(self, *args, **kwargs):
         # Ensure only one settings instance exists
         self.pk = 1
         super().save(*args, **kwargs)
-    
+
     @classmethod
     def load(cls):
         obj, created = cls.objects.get_or_create(pk=1)
@@ -218,11 +219,117 @@ class BookingHistory(models.Model):
     changed_at = models.DateTimeField(auto_now_add=True)
     changes = models.JSONField(default=dict)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
-    
+
     class Meta:
         ordering = ['-changed_at']
         verbose_name = 'Booking History'
         verbose_name_plural = 'Booking Histories'
-    
+
     def __str__(self):
         return f"{self.booking} - {self.action} at {self.changed_at}"
+
+
+class Payment(models.Model):
+    """eSewa payment records for bookings"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('initiated', 'Initiated'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.OneToOneField(
+        Booking,
+        on_delete=models.CASCADE,
+        related_name='payment'
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+
+    # eSewa transaction details
+    transaction_uuid = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text='Unique transaction ID generated for eSewa'
+    )
+    esewa_transaction_code = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='eSewa transaction code returned after payment'
+    )
+    esewa_refund_code = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='eSewa refund code if payment was refunded'
+    )
+
+    # Metadata
+    product_code = models.CharField(
+        max_length=100,
+        default='BOOKINGFEE',
+        help_text='Product code for eSewa'
+    )
+    signature = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Signature for payment verification'
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    # Additional tracking
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Payment'
+        verbose_name_plural = 'Payments'
+        indexes = [
+            models.Index(fields=['booking', 'status']),
+            models.Index(fields=['transaction_uuid']),
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        return f"Payment {self.transaction_uuid[:8]}... - {self.booking} - {self.status}"
+
+    def mark_completed(self, esewa_code=None, signature=None):
+        """Mark payment as completed"""
+        self.status = 'completed'
+        self.completed_at = timezone.now()
+        if esewa_code:
+            self.esewa_transaction_code = esewa_code
+        if signature:
+            self.signature = signature
+        self.save()
+
+        # Update booking status to confirmed
+        self.booking.payment_status = 'paid'
+        self.booking.status = 'confirmed'
+        self.booking.save()
+
+    def mark_failed(self):
+        """Mark payment as failed"""
+        self.status = 'failed'
+        self.save()
+
+    def mark_cancelled(self):
+        """Mark payment as cancelled"""
+        self.status = 'cancelled'
+        self.save()
